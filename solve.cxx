@@ -1,4 +1,5 @@
 #include <fftw3.h>
+#include <initread.h>
 
 #include <string>
 #include <fstream>
@@ -38,39 +39,11 @@ void assign_delta(fftw_complex* arr, int N){
 	}
 }
 
-void check_space(fftw_complex* arr, int N, int flag){
-	double realmin, realmax, imagmin, imagmax, average;
-	
-	realmin = realmax = arr[1][0];
-	imagmin = imagmax = arr[1][1];
-
-	for(int i=0; i<N; ++i){
-		if(i==0){
-			std::cout<<"a[0] = " <<std::fixed<< arr[i]
-				<<" = ("<<arr[i][0]<<","<<arr[i][1]<<")"<<std::endl;
-		} else {
-			double real = arr[i][0];
-			double imag = arr[i][1];
-			realmin = real < realmin ? real  : realmin;
-			realmax = real > realmax ? real  : realmax;
-			imagmin = imag < imagmin ? imag : imagmin;
-			imagmax = imag > imagmax ? imag : imagmax;
-		}
-	}
-	if(flag){
-		std::cout<<"Position space: real in "<<std::scientific
-		<<"["<<realmin<<","<<realmax<<"]" <<std::endl 
-		<<" imag in "<< std::scientific 
-		<<"["<<imagmin<<","<<imagmax<<"]" <<std::endl;
-	} else {
-		std::cout<<"k space: real in "<<std::scientific
-		<<"["<<realmin<<","<<realmax<<"]" <<std::endl 
-		<<" imag in "<< std::scientific 
-		<<"["<<imagmin<<","<<imagmax<<"]" <<std::endl;
-	}
-}
-
 int main(int argc, char *argv[]){
+
+//parameter read in
+
+//allocation 
 	int N = 64;
 	int nq=N/2;
 	const double pi = 4.0*atan(1.0);

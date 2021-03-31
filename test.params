@@ -1,0 +1,20 @@
+#######################################################################
+#Code Parameters
+#Length scales in Mpc/h
+#HBAR: Dimensionless Planck constant, typically hbar/m
+#NG: Number of grid points
+#RL: Physical length of grid
+#Z_IN: Initial time
+#Z_FIN: Final time (for historical reasons these are named zin, not tin, tfin
+#NSTEPS: Number of time steps to take. Step size will be (zfin-zin)/nsteps
+#OUTBASE: path to the output basename
+#Z_PR: List of space delimited steps to print output at
+#######################################################################
+HBAR
+NG 256 
+RL 9.0
+Z_FIN 5.0
+Z_PR 40 30 20 10 5
+NSTEPS 150
+OUTBASE data/runxx/run00/run00
+######################################################################
