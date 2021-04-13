@@ -2,7 +2,7 @@ CPP := mpicxx
 CPPFLAGS := -O3 -std=c++11 -MMD -MP
 
 #Here. We are the source directory. 
-SRCDIR := .
+SRCDIR := $(shell pwd)
 BIN_DIR = $(shell pwd)
 BUILD_DIR := build
 #List of every .cxx file in the directory
@@ -25,7 +25,7 @@ LDFLAGS := -lfftw3
 #Dependency Options
 DEPENDENCY_OPTIONS = -MM
 
-PROJECT := $(BIN_DIR)/sine_test
+PROJECT := $(BIN_DIR)/sine_test $(BIN_DIR)/solve
 
 ###############################################
 #	Makefile cheatsheet
@@ -47,8 +47,13 @@ $(BUILD_DIR)/%.cxx.o : %.cxx | $(BUILD_DIR)
 	@$(CPP) $(CPP_FLAGS) $(HEADERS) -c $< -o $@
 
 $(BIN_DIR)/sine_test: $(BUILD_DIR)/fft_test.cxx.o
-	@$(CPP) $(CPPFLAGS)  -o $@ $< $(LDFLAGS)
+	@$(CPP) $(CPPFLAGS) -o $@ $< $(LDFLAGS)
 	@echo "[ $(CPP) ] $@"
+
+$(BIN_DIR)/solve: $(BUILD_DIR)/solve.cxx.o $(BUILD_DIR)/initread.cxx.o
+	@$(CPP) $(CPPFLAGS) -o $@ $^ $(LDFLAGS)
+	@echo "[ $(CPP) ] $@"
+
 
 #create directories if don't exist
 $(BUILD_DIR):
@@ -61,3 +66,9 @@ endif
 .PHONY: depclean
 depclean:
 	rm -f $(DEPS)
+
+.PHONY: clean
+clean:
+	rm -rf $(PROJECT) $(OBJECTS)
+
+clean-all: clean depclean

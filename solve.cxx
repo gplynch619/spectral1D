@@ -1,9 +1,10 @@
-#include <fftw3.h>
-#include <initread.h>
+#include "spectral.h"
+#include "initread.h"
 
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 #include <iostream>
 #include <iomanip>
@@ -12,29 +13,26 @@
 
 #include <math.h>
 
-inline int MOD(int x, int y) { return (x - y*(x/y)); }
 //if(k_i>nq){k_i = -MOD(ng-k_i, ng);}
 
-void output(std::string fname, double* col1, fftw_complex * col2, int N){
+void output(std::string fname, double* col1, std::complex<double> * col2, int N){
 	std::ofstream OutFile;
 	int i;
 	OutFile.open(fname, std::ios::out | std::ios::app);
 	for(i=0; i<N; ++i){
-		OutFile << col1[i] <<" "<<col2[i][0]<<" "<<col2[i][1]<<std::endl;
+		OutFile << col1[i] <<" "<<col2[i].real()<<" "<<col2[i].imag()<<std::endl;
 	}
 }
 
-void assign_delta(fftw_complex* arr, int N){
-	fftw_complex zero,one;
-	
+void assign_delta(std::complex<double>* arr, int N){
 	for(int i=0; i<N; ++i){
 		if(i==0){ 
-			arr[i][0] = 1.0; 
-			arr[i][1] = 0.0; 
+			arr[i].real(1.0); 
+			arr[i].imag(0.0); 
 		}
 		else {
-			arr[i][0] = 0.0;
-			arr[i][1] = 0.0;
+			arr[i].real(0.0);
+			arr[i].imag(0.0);
 		}
 	}
 }
@@ -42,67 +40,54 @@ void assign_delta(fftw_complex* arr, int N){
 int main(int argc, char *argv[]){
 
 //parameter read in
+//
+	int argvi = optind;
+	std::string paramfile;
 
-//allocation 
-	int N = 64;
-	int nq=N/2;
-	const double pi = 4.0*atan(1.0);
-	const double tpi = 2.0*pi;
-	
-	double t[N]; //time grid
-	fftw_complex signal[N]; //signal, sampeled at discrete t
-	double freq[N];	
-	fftw_complex out[N]; //array to hold output
-	fftw_plan planf;
-	fftw_plan planb;
+	paramfile = argv[argvi];
 
-	planf = fftw_plan_dft_1d(N, signal, out,  FFTW_FORWARD, FFTW_ESTIMATE); 
-	planb = fftw_plan_dft_1d(N, out, signal, FFTW_BACKWARD, FFTW_ESTIMATE); 
+	Parameters params(paramfile);
 
-	double T = tpi;
-	double DeltaT = T/N;
-	double omega = tpi*1.0;
+	std::string paramout = params.getParamsString();
 
+	std::cout << paramout << std::endl;
 
-	assign_delta(signal, N);
+//allocation
 
-	for(int i=0; i<N; ++i){
-		t[i] = i*DeltaT; //t holds evenly spaced values from 0 to T;
-		freq[i]=i/T;
-		if(i>=nq){ freq[i] = -MOD(N-i, N)/T; }
-		//puts frequency array in correct format. The i=0 term is the 0 frequency
-		//then 1<=i<N/2 - 1 are positive frequencies, and N/2+1<=i<N-1 are neg
-		//with i=N/2 being f_c
-	}
+	int Ng = params.ng();
+	double L = params.rL();
+	std::vector<std::complex<double>> rspace;
+	std::vector<std::complex<double>> kspace;
+
+	rspace.resize(Ng);
+	kspace.resize(Ng);
+
+	SpectralFreeParticle* solver = new SpectralFreeParticle(Ng, L, 
+			params.hbar(), rspace, kspace);
+
+	std::cout<<"Free particle solver successfully initialized"<<std::endl;
+
+	assign_delta(rspace.data(), Ng);
 
 	std::ostringstream outname;
-	outname<<"before.txt";
+	outname<<"initial.txt";
 
-	output(outname.str(), t, signal, N);
+	output(outname.str(), solver->real_grid(), rspace.data(), Ng);
 
-	check_space(signal, N, 0);
-	
-	fftw_execute(planf);
+	solver->fft_forward(rspace.data(), kspace.data());
 
 	outname.str("");
 	outname<<"forward.txt";
 
-	output(outname.str(), freq, out, N);
+	output(outname.str(), solver->k_grid(), kspace.data(), Ng);
 
-	check_space(out, N, 1);
-
-	fftw_execute(planb);
+	solver->fft_backward(kspace.data(), rspace.data());
 
 	outname.str("");
 	outname<<"backward.txt";
 
-	output(outname.str(), t, signal, N);
-
-	check_space(signal, N, 0);
+	output(outname.str(), solver->real_grid(), rspace.data(), Ng);
 	
-	fftw_destroy_plan(planf);
-	fftw_destroy_plan(planb);
-
 	return 0;
 }
 

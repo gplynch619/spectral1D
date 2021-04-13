@@ -1,5 +1,6 @@
 #include "initread.h"
 
+
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
@@ -30,13 +31,12 @@ inline std::string trim(std::string s, const char* t = " \t\n\r\f\v")
 using namespace std;
 
 Parameters::Parameters(string pName) :
-	m_cdm_mass(-1.0),
 	zpr_size(0),
 	m_zin(-1.0),
 	m_zfin(-1.0),
 	m_ng(-1),
 	m_rL(-1.0),
-	m_nsteps(-1),
+	m_nsteps(-1)
 	{
 		readNewParams(pName);
 	}
@@ -123,6 +123,7 @@ void Parameters::readNewParams(string &fn) {
 		m_apr[i] = 1.0/(1.0 + m_zpr[i]);
 	}
 */
+	std::stringstream ss;
 	ss.str(m_params["OUTBASE"].c_str());
 	m_outBase  = trim(ss.str()); 
 	ss.clear();
