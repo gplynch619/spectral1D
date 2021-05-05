@@ -58,7 +58,7 @@ class SpectralSolverBase {
 			double scale = 1.0/m_Ng;
 			for(int i=0; i<m_Ng; ++i){
 				std::complex<double> norm(scale, 0.0);
-				m_rspointer[i] *= norm;
+				out[i] *= norm;
 			}//accounts for fftw normalizaiton conventions
 		}
 
@@ -79,9 +79,15 @@ class SpectralSolverBase {
 		//
 		//input: kspace array of values
 		//output: rspace array after applied kick and ifft
-		void map1(std::vector<std::complex<double>>& in, 
-				std::vector<std::complex<double>>& out, double dt){
-			//
+		void map1(std::vector<std::complex<double>>& in, double dt){
+			
+			for(int i=0; i<m_Ng; ++i){
+				double kk = m_kgrid.at(i);
+				double phase = -0.5*m_planck*kk*kk*dt;
+				std::complex<double> kick = std::polar(1.0, phase); 
+			
+				in.at(i)*=kick;
+			}
 		}
 		
 		//Initialization
@@ -113,15 +119,21 @@ class SpectralSolverBase {
 			for(int i=0; i<m_Ng; ++i){
 				double kk = i;
 				if(i>=nq){ kk = -MOD(m_Ng-i, m_Ng); }
-				m_kgrid.at(i) = (tpi/m_rL)*kk; 
+				m_kgrid.at(i) = (tpi/m_rL)*kk;
+				//m_kgrid.at(i) = (tpi/m_Ng)*kk; 
 				//sets kspace grid in same format as fftw
-			}
-			
+			}			
 
 		}
-	
+
+
 		double* real_grid(){ return m_rgrid.data(); }
+		std::vector<double>& real_grid_vec() { return m_rgrid; }
 		double* k_grid(){ return m_kgrid.data(); }
+
+		double dx(){ return m_dx; }
+		double rL(){ return m_rL; }
+		int Ng(){ return m_Ng; }
 
 		virtual void map2(std::vector<std::complex<double>>& in, 
 				std::vector<std::complex<double>>& out, double dt){};
@@ -171,5 +183,4 @@ class SpectralFreeParticle : public SpectralSolverBase {
 		}
 
 };
-
 #endif

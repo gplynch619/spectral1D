@@ -25,7 +25,7 @@ LDFLAGS := -lfftw3
 #Dependency Options
 DEPENDENCY_OPTIONS = -MM
 
-PROJECT := $(BIN_DIR)/sine_test $(BIN_DIR)/solve
+PROJECT := $(BIN_DIR)/sine_test $(BIN_DIR)/solve $(BIN_DIR)/integ
 
 ###############################################
 #	Makefile cheatsheet
@@ -50,7 +50,11 @@ $(BIN_DIR)/sine_test: $(BUILD_DIR)/fft_test.cxx.o
 	@$(CPP) $(CPPFLAGS) -o $@ $< $(LDFLAGS)
 	@echo "[ $(CPP) ] $@"
 
-$(BIN_DIR)/solve: $(BUILD_DIR)/solve.cxx.o $(BUILD_DIR)/initread.cxx.o
+$(BIN_DIR)/solve: $(BUILD_DIR)/solve.cxx.o $(BUILD_DIR)/initread.cxx.o $(BUILD_DIR)/TimeStepper.cxx.o $(BUILD_DIR)/sc.cxx.o
+	@$(CPP) $(CPPFLAGS) -o $@ $^ $(LDFLAGS)
+	@echo "[ $(CPP) ] $@"
+
+$(BIN_DIR)/integ: $(BUILD_DIR)/integtest.cxx.o 
 	@$(CPP) $(CPPFLAGS) -o $@ $^ $(LDFLAGS)
 	@echo "[ $(CPP) ] $@"
 
