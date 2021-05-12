@@ -1,6 +1,7 @@
 #ifndef QUADRATURE_H
 #define QUADRATURE_H
 #include <math.h>
+#include <stdio.h>
 
 struct Quadrature{
 
@@ -40,7 +41,6 @@ template<class T>
 double qtrap(T& func, const double a, const double b, const double eps=1e-10){
 
 	const int JMAX=20;
-
 	double s,olds=0.0;
 	Trapzd<T> t(func, a, b);
 	for(int j=0; j<JMAX;j++){

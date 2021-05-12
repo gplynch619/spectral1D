@@ -8,6 +8,7 @@
 #include <complex>
 
 #include "sctypes.h"
+#include "spectral.h"
 
 #include <iostream>
 #include <iomanip>
@@ -21,4 +22,9 @@ double vecnorm(std::vector<std::complex<double>>& a, std::vector<std::complex<do
 
 void gaussian_ic(double width, double center, double phase,
 		std::vector<std::complex<double>>& wf, std::vector<double>& grid);
+
+void write_energy_spectrum(std::vector<double>& corr, 
+		std::vector<double>& timegrid, SpectralSolverBase* solver, 
+		int nsteps, double T, std::string basename);
+
 #endif

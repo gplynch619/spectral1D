@@ -20,44 +20,6 @@
 
 //if(k_i>nq){k_i = -MOD(ng-k_i, ng);}
 
-void print_grid(double* grid, int N){
-	std::ostringstream ss;
-
-	for(int i=0; i<N; ++i){
-		ss<<grid[i]<<" ";
-	}
-
-	std::cout<<ss.str()<<std::endl;
-
-}
-
-void assign_gaussian(std::vector<std::complex<double>>& arr, 
-		SpectralSolverBase* solver){
-	
-	int ng = solver->Ng();
-	const double pi = 4.0*atan(1.0);
-	const double tpi = 2.0*pi;
-
-	double physical_center = solver->dx()*ng/2.;
-
-	double width=1.0;
-	double coeff = pow(pi, -0.25)*pow(1.0, -0.5);
-
-	double* xgrid = solver->real_grid();
-
-	for(int i=0; i<ng; ++i){
-		double physx = xgrid[i];
-		double shift = ((physx<=physical_center) ? physx : solver->rL()-physx);	
-	
-		shift=shift-physical_center;
-		double mag = coeff*exp(-(shift*shift)/2.);
-
-		arr.at(i) = std::polar(mag, 0.0);
-	
-	}
-
-}
-
 int main(int argc, char *argv[]){
 
 //parameter read in
@@ -77,17 +39,30 @@ int main(int argc, char *argv[]){
 
 	int Ng = params.ng();
 	double L = params.rL();
+	
 	std::vector<std::complex<double>> rspace;
 	std::vector<std::complex<double>> kspace;
+	std::vector<std::complex<double>> initial_copy;
+	std::vector<double> corrfunc;
+	std::vector<double> tgrid;
 
 	rspace.resize(Ng);
 	kspace.resize(Ng);
+	initial_copy.resize(Ng);
 
-	SpectralFreeParticle* solver = new SpectralFreeParticle(Ng, L, 
-			params.hbar(), rspace, kspace);
+	double omega=1.0;
 
-	print_grid(solver->k_grid(), Ng);
+	//SpectralFreeParticle* solver = new SpectralFreeParticle(Ng, L, 
+	//		params.hbar(), rspace, kspace);
 	
+	SpectralQHO* solver = new SpectralQHO(Ng, L, 
+			params.hbar(), rspace, kspace, omega);
+
+	
+	std::ostringstream potname;
+	potname<<params.outBase()<<".potential";
+	output(potname.str(), solver->real_grid(), solver->get_potential(), Ng);	
+
 	std::cout<<"Free particle solver successfully initialized"<<std::endl;
 
 	TimeStepper ts(params.zin(), 
@@ -96,6 +71,9 @@ int main(int argc, char *argv[]){
 			params.zpr(), 
 			params.nzpr());
 
+	corrfunc.resize(params.nsteps());
+	tgrid.resize(params.nsteps());
+
 	std::cout<<"Time stepper successfully initialized"<<std::endl;
 
 	//Initialize
@@ -103,11 +81,22 @@ int main(int argc, char *argv[]){
 
 	gaussian_ic(1.0, L/2.0, 0.0, rspace, solver->real_grid_vec());
 	
+	initial_copy.assign(rspace.begin(), rspace.end());
+
 	REAL previous_step=ts.tau();
 	bool just_printed = false;
 
+	//check norm
+	double norm = vecnorm(rspace, rspace, 0, L, solver->real_grid_vec());
 
+	std::cout<<"Norm of wf: "<<norm<<std::endl;
+	
+	std::ostringstream ost;
+	ost<<params.outBase()<<".ini";
+	output(ost.str(), solver->real_grid(), rspace.data(), Ng);	
+	
 	//Actual stepping routine
+	
 	for(int step=0; step<params.nsteps(); step++){
 	
 		std::cout<<"TIMESTEP: "<<step<<std::endl;
@@ -151,6 +140,9 @@ int main(int argc, char *argv[]){
 		//
 		//////////////////////////////
 		
+		solver->map2(rspace, ts.tau());		
+
+		ts.advanceHalfStep();
 		//////////////////////////////
 		//
 		// STREAM STEP
@@ -163,8 +155,6 @@ int main(int argc, char *argv[]){
 
 		solver->fft_backward(kspace.data(), rspace.data());
 
-		ts.advanceHalfStep();
-	
 		if((ts.m_zpr.front()-ts.zz())<EPS || step+1==params.nsteps()){
 			std::cout<<"Printing on step "<<step<<std::endl;
 			std::ostringstream outname;
@@ -175,9 +165,19 @@ int main(int argc, char *argv[]){
 			just_printed=true;
 		}
 
+		double corr; 
+		
+		corr = vecnorm(initial_copy, rspace, 0, L, solver->real_grid_vec());
+
+		corrfunc.at(step)=corr;
+		tgrid.at(step) = ts.currentHalfStep()*ts.tau2();	
+
 		std::cout<<"Step "<<step<<" done!"<<std::endl;
 	
 	}
+
+	std::cout<<"test"<<std::endl;
+	write_energy_spectrum(corrfunc, tgrid, solver, params.nsteps(), params.zfin(), params.outBase());
 
 	return 0;
 }

@@ -7,6 +7,7 @@
 #include <complex>
 #include <fftw3.h>
 
+
 //////////////////////////////////////////////////
 //
 //Base class for spectral solver. Specific implementations
@@ -84,9 +85,9 @@ class SpectralSolverBase {
 			for(int i=0; i<m_Ng; ++i){
 				double kk = m_kgrid.at(i);
 				double phase = -0.5*m_planck*kk*kk*dt;
-				std::complex<double> kick = std::polar(1.0, phase); 
+				std::complex<double> stream = std::polar(1.0, phase); 
 			
-				in.at(i)*=kick;
+				in.at(i)*=stream;
 			}
 		}
 		
@@ -135,8 +136,7 @@ class SpectralSolverBase {
 		double rL(){ return m_rL; }
 		int Ng(){ return m_Ng; }
 
-		virtual void map2(std::vector<std::complex<double>>& in, 
-				std::vector<std::complex<double>>& out, double dt){};
+		virtual void map2(std::vector<std::complex<double>>& in, double dt){};
 
 	protected:			
 
@@ -182,5 +182,47 @@ class SpectralFreeParticle : public SpectralSolverBase {
 			//one I have a function that does nothin
 		}
 
+};
+
+class SpectralQHO : public SpectralSolverBase {
+
+	public:
+		SpectralQHO(int N, double rL, double hbar,
+				std::vector<std::complex<double>>& rsarray,
+				std::vector<std::complex<double>>& ksarray,
+				double omega) 
+			: SpectralSolverBase(N,rL,hbar,rsarray,ksarray),
+			m_omega(omega)
+		{
+			m_center = rL/2.0;
+		}
+
+
+		//we will start with a HO w/ time independent freq
+		//and non-forced
+		void map2(std::vector<std::complex<double>>& in, double dt){
+			for(int i=0; i<m_Ng; ++i){
+				double xx = m_rgrid.at(i);
+				double phase = -0.5*m_omega*(xx - m_center)*(xx - m_center)*dt/m_planck;
+				std::complex<double> kick = std::polar(1.0, phase); 
+			
+				in.at(i)*=kick;
+			}	
+		}
+
+		double* get_potential(){
+			std::vector<double> v;
+			v.resize(m_Ng);
+			for(int i=0; i<m_Ng; ++i){
+				double xx = m_rgrid.at(i);
+				v.at(i) = -0.5*m_omega*(xx-m_center)*(xx - m_center)/m_planck;
+			}
+			return v.data();
+		}
+
+	private:
+
+		double m_omega;
+		double m_center;
 };
 #endif

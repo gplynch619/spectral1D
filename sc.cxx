@@ -1,6 +1,5 @@
 #include "sc.h"
 #include "quadrature.h"
-//#include "quadrature.h"
 
 #include <iostream>
 #include <iomanip>
@@ -11,7 +10,7 @@
 
 #define DIMENSION 3
 
-inline int MOD(int x, int y) { return (x-y*(x/y)); }
+//inline int MOD(int x, int y) { return (x-y*(x/y)); }
 
 void output(std::string fname, double* col1, std::complex<double> * col2, int N){
 	std::ofstream OutFile;
@@ -35,7 +34,7 @@ void output(std::string fname, double* col1, double* col2, int N){
 double vecnorm(std::vector<std::complex<double>>& a, 
 		std::vector<std::complex<double>>& b, double lower, double upper, 
 		std::vector<double>& grid){
-
+	
 	assert(a.size()==b.size());
 
 	int N = a.size();
@@ -43,8 +42,8 @@ double vecnorm(std::vector<std::complex<double>>& a,
 	std::vector<double> prod;
 	prod.resize(N);
 
-	double tmp = 0.0;
 	for(int i=0; i<N; ++i){
+		double tmp;
 		tmp = std::real(std::conj(a.at(i))*b.at(i));
 		prod.at(i) = tmp;
 	}
@@ -72,4 +71,45 @@ void gaussian_ic(double width, double center, double phase,
 		wf.at(i) = std::polar(magnitude, arg);
 	}
 	
+}
+
+void write_energy_spectrum(std::vector<double>& corr, 
+		std::vector<double>& timegrid, SpectralSolverBase* solver, 
+		int nsteps, double T, std::string basename){
+	
+	const double tpi = 2.0*4.0*atan(1.0);
+	int nq = nsteps/2;
+
+	std::vector<std::complex<double>> energy;
+	//energy.resize(nsteps);
+
+	std::ostringstream outname;
+	outname<<basename<<".corr";
+
+	output(outname.str(), timegrid.data(), corr.data(), nsteps);
+
+	std::vector<double> freqgrid;
+	freqgrid.resize(nsteps);
+
+	for(int i=0; i<nsteps; ++i){
+		double ww = i;
+		if(i>=nq){ ww = -MOD(nsteps-i, nsteps); }
+		freqgrid.at(i) = (tpi/T)*ww;
+	}
+
+	std::vector<std::complex<double>> complex_corr;
+	complex_corr.resize(nsteps);
+	for(int i=0; i<nsteps; ++i){
+		std::complex<double> c(corr.at(i), 0.0);
+		complex_corr.at(i) = c;
+	}
+
+	solver->fft_forward(complex_corr.data(), energy.data());
+
+	outname.str("");
+	outname<<basename<<".spectrum";
+	output(outname.str(), freqgrid.data(), energy.data(), nsteps-1);
+
+	return;
+
 }
